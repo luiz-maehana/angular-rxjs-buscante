@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { debounceTime, filter, map, switchMap } from 'rxjs';
-import { Item } from 'src/app/models/interfaces';
+import { EMPTY, catchError, debounceTime, filter, map, switchMap, throwError } from 'rxjs';
+import { Item, LivrosResultado } from 'src/app/models/interfaces';
 import { LivroVolumeInfo } from 'src/app/models/livroVolumeInfo';
 import { LivroService } from 'src/app/service/livro.service';
 
@@ -13,7 +13,10 @@ const PAUSA = 500
   styleUrls: ['./lista-livros.component.css']
 })
 export class ListaLivrosComponent {
-  campoBusca = new FormControl
+
+  campoBusca = new FormControl  
+  mensagemErro = ''
+  livrosResultado: LivrosResultado
 
   constructor(private service: LivroService) { }
 
@@ -22,7 +25,13 @@ export class ListaLivrosComponent {
       debounceTime(PAUSA),
       filter((valorDigitado) => valorDigitado.length >= 3),
       switchMap((valorDigitado) => this.service.buscarLivros(valorDigitado)),
-      map((itens) => this.livroResultadosParaLivro(itens))
+      map(resultado => this.livrosResultado = resultado),
+      map(resultado => resultado.items ?? []),
+      map((itens) => this.livroResultadosParaLivro(itens)),
+      catchError(() => {
+        this.mensagemErro = 'Ops, ocorreu um erro. Recarregue a sua aplicação!'
+        return EMPTY
+      })
 
     )
 
